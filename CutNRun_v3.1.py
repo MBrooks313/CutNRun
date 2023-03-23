@@ -1,4 +1,4 @@
-#######################################
+
 # This is a Cut&Run analysis snakemake script.
 # Written my Matthew J. Brooks on March 9th, 2020
 # This runs on an HPC running SLURM
@@ -67,8 +67,8 @@ rule trimAlign:
                 R2 = FASTQS + "/{sample}.R2.fastq.gz",
                 adapter = config["trimmoadapt"]
         output:
-                forward = temp("trim/{sample}.R1.fastq.gz"),
-                reverse = temp("trim/{sample}.R2.fastq.gz"),
+                forwd = temp("trim/{sample}.R1.fastq.gz"),
+                revrs = temp("trim/{sample}.R2.fastq.gz"),
                 for_un = temp("trim/unpaired_{sample}.R1.fastq.gz"),
                 rev_un = temp("trim/unpaired_{sample}.R2.fastq.gz"),
                 flag_raw = "QCstats/{sample}_Flagstat_raw.txt",
@@ -93,8 +93,8 @@ rule trimAlign:
         #### Trim fastq ####
         java -jar $TRIMMOJAR PE -threads ${{SLURM_CPUS_ON_NODE}} \
         {input.R1} {input.R2} \
-        {output.forward} {output.for_un} \
-        {output.reverse} {output.rev_un} \
+        {output.forwd} {output.for_un} \
+        {output.revrs} {output.rev_un} \
         ILLUMINACLIP:{input.adapter}:2:15:4:4:true TAILCROP:6 LEADING:20 TRAILING:20 MINLEN:25 2>> {log}
         ###################################################
         #### Align, filter for MAPQ > 20, and sort bam ####
@@ -102,8 +102,8 @@ rule trimAlign:
         --end-to-end --dovetail -I 10 -X 700 \
         --very-sensitive --no-unal --no-mixed --no-discordant -q --phred33  \
         -x {params.ref} \
-        -1 {output.forward} \
-        -2 {output.reverse} 2>> {log} | \
+        -1 {output.forwd} \
+        -2 {output.revrs} 2>> {log} | \
         samtools view -bS - > /lscratch/${{SLURM_JOBID}}/raw.bam
         samtools view -bSq 20 /lscratch/${{SLURM_JOBID}}/raw.bam 2>> {log} | \
         samtools sort -@ ${{SLURM_CPUS_ON_NODE}} -o {output.bam} -
